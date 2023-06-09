@@ -29,16 +29,16 @@ aws ec2 create-key-pair k8s_key_pair
 
 Create SSH key pair and save it
 ```
-aws ec2 create-key-pair k8s_key_pair | jq -r ".KeyMaterial" > k8s_key_pair.pem
+aws ec2 create-key-pair --key-name k8s_key_pair | jq -r ".KeyMaterial" > k8s_key_pair.pem
 ```
 Create the Controller VMs
 ```
 for i in 0 1 2; do
-  $name="controller-${i}"
+  name="controller-${i}"
   aws ec2 run-instances \
   --image-id ami-04a0ae173da5807d3 \
   --instance-type t2.micro \
-  --key-name k8s_key_pair
+  --key-name k8s_key_pair \
   --tag-specification "ResourceType=instance,Tags=[{Key=name,Value=$name},{Key=role,Value=controller},{Key=project,Value=kubernetescluster}]"
 done
 ```
@@ -50,7 +50,7 @@ for i in 0 1 2; do
   aws ec2 run-instances \
   --image-id ami-04a0ae173da5807d3 \
   --instance-type t2.micro \
-  --key-name k8s_key_pair
+  --key-name k8s_key_pair \
   --tag-specification "ResourceType=instance,Tags=[{Key=name,Value=$name},{Key=role,Value=worker}{Key=project,Value=kubernetescluster}]'
 ```
 Retreive all EC2 Instance IDs
