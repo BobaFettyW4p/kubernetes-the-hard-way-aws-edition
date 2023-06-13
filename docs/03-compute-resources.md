@@ -13,20 +13,39 @@ aws ec2 describe-vpcs \
 
 Export the VPC Id to a variable
 ```
-vpcid=$(aws ecs describe-vpcs \
+vpc=$(aws ecs describe-vpcs \
   --filters Name=tag:project,Values=kubernetescluster \
   | jq -r ".Vpcs[].VpcId")
 ```
 
-Test that the variable has been appropriately set
+Create Internet Gateway for the VPC
 ```
-echo $vpcid
+aws ec2 create-internet-gateway --tag-specification "ResourceType=internet-gateway,Tags=[{Key=project,Value=kubernetescluster}]"
+```
 
+Retreive the Internet Gateway ID
+```
+ig=$(aws describe-internet-gateway --filters Name=tag:project,Values=kubernetescluster | jq -r ".InternetGateways[].InternetGatewayId")
+```
+
+Attach the Internet Gateway to the VPC
+```
+aws ec2 attach-internet-gateway --internet-gateway-id $ig --vpc-id $vpc
+```
+Confirm the internet gateway was appropriately attached
+```
+aws ec2 describe-internet-gateway --filters Name=tag:project,Values=kubernetescluster | jq -r ".InternetGateways[].Attachments[]"
+
+#this command will yield somethign similar to this if it is appropriately attached
+# {
+# "State": "available",
+# "VpcId": "vpc-xxxxxxx" where the VPC ID corresponds to the ID of your VPC (confirm with echo $vpc)
+# }
 ```
 Create the subnet within the VPC for nodes to reside within
 ```
 aws ec2 create-subnet \
-  --vpc-id $vpcid \ 
+  --vpc-id $vpc \ 
   --cidr-block 10.0.0.0/24 \
   --tag-specification "ResourceType=subnet,Tags=[{Key=project,Value=kubernetescluster}]"
 ```
@@ -40,15 +59,11 @@ aws ec2 create-security-group \
 ```
 Retreive Group ID of recently created security group
 ```
-externalsecgroup=$(aws ec2 describe-security-groups \
-  --filters NAme=group-name,Values=allow-external \
+secgroup=$(aws ec2 describe-security-groups \
+  --filters Name=group-name,Values=allow-external \
   | jq -r ".SecurityGroups[].GroupId")
 ```
 Create security group rules for the external security group
-```
-
-```
-create static IP
 ```
 
 ```
