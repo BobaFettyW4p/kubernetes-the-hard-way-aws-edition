@@ -1,15 +1,21 @@
 Create the VPC
 ```
-aws ec2 create-vpc --cidr-block 10.0.0.0/24 --tag-specification "ResourceType=vpc,Tags=[{Key=project,Value=kubernetescluster}]"
+aws ec2 create-vpc \
+  --cidr-block 10.0.0.0/24 \
+  --tag-specification "ResourceType=vpc,Tags=[{Key=project,Value=kubernetescluster}]"
 ```
 Get the VPC Id of the newly created VPC
 ```
-aws ec2 describe-vpcs --filters Name=tag:project,Values=kubernetescluster | jq -r ".Vpcs[].VpcId"
+aws ec2 describe-vpcs \
+  --filters Name=tag:project,Values=kubernetescluster \
+  | jq -r ".Vpcs[].VpcId"
 ```
 
 Export the VPC Id to a variable
 ```
-vpcid=$(aws ecs describe-vpcs --filters Name=tag:project,Values=kubernetescluster | jq -r ".Vpcs[].VpcId")
+vpcid=$(aws ecs describe-vpcs \
+  --filters Name=tag:project,Values=kubernetescluster \
+  | jq -r ".Vpcs[].VpcId")
 ```
 
 Test that the variable has been appropriately set
@@ -19,19 +25,24 @@ echo $vpcid
 ```
 Create the subnet within the VPC for nodes to reside within
 ```
-aws ec2 create-subnet --vpc-id $vpcid --tag-specification "ResourceType=subnet,Tags=[{Key=project,Value=kubernetescluster}]" --cidr-block 10.0.0.0/24
+aws ec2 create-subnet \
+  --vpc-id $vpcid \ 
+  --cidr-block 10.0.0.0/24 \
+  --tag-specification "ResourceType=subnet,Tags=[{Key=project,Value=kubernetescluster}]"
 ```
-Create internal security group
+create security group to manage routing to external resources
 ```
-aws ec2 create-security-group --group-name allow-internal --vpc-id $vpcid --description "Security group to allow inter-node communication" --tag-specification "ResourceType=security-group,Tags=[{Key=project,Value=kubernetescluster}]"
+aws ec2 create-security-group \
+  --group-name allow-external \
+  --vpc-id $vpcid \
+  --description "Security group to control communication between nodes and outside hosts" \
+  --tag-specification "ResourceType=security-group.Tags=[{Key=project,Value=kubernetescluster}]"
 ```
-Create security group rules for the internal security group
+Retreive Group ID of recently created security group
 ```
-
-```
-create external security group
-```
-aws ec2 create-security-group --group-name allow-external --vpc-id $vpcid --description "Security group to control communication between nodes and outside hosts" --tag-specification "ResourceType=security-group.Tags=[{Key=project,Value=kubernetescluster}]"
+externalsecgroup=$(aws ec2 describe-security-groups \
+  --filters NAme=group-name,Values=allow-external \
+  | jq -r ".SecurityGroups[].GroupId")
 ```
 Create security group rules for the external security group
 ```
